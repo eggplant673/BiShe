@@ -41,9 +41,9 @@ leave_id = clf.apply(x_img_train_tree)
 # a group of samples. First, let's make it for the sample.
 
 # HERE IS WHAT YOU WANT
-sample_id = 10
-plt.imshow(x_img_train[sample_id])
-plt.show()
+sample_id = 8
+# plt.imshow(x_img_train[sample_id])
+# plt.show()
 # plt.imshow(x_train[2].reshape(28,28))
 # plt.show()
 
@@ -97,36 +97,36 @@ img = [0]*pixelNum
 for i in index:
     img[i]=255
 print(index)
-plt.imshow(np.array(img).reshape(32,32,3))
-plt.show()
+# plt.imshow(np.array(img).reshape(32,32,3))
+# plt.show()
 
 
 #决策单个图片依赖的像素点
 for node_id in node_index:
-    if (x_img_train_tree[sample_id, feature[node_id]] <= threshold[node_id]):
+    if (x_img_train_tree[sample_id, feature[node_id]] <= threshold[node_id]) and feature[node_id] in index :
         increaseNum =  threshold[node_id] + 0.5*(1- threshold[node_id])
         x_img_train_tree[sample_id, feature[node_id]] = increaseNum
         if feature[node_id] >33*3 and feature[node_id]<pixelNum-33*3 and feature[node_id] in index:
            x_img_train_tree[sample_id, feature[node_id]-1*3]= increaseNum
            x_img_train_tree[sample_id, feature[node_id]+1*3]= increaseNum
-           x_img_train_tree[sample_id, feature[node_id]-33*3] = increaseNum
+           
            x_img_train_tree[sample_id, feature[node_id]-32*3] = increaseNum
-           x_img_train_tree[sample_id, feature[node_id]-31*3] = increaseNum
-           x_img_train_tree[sample_id, feature[node_id]+31*3] = increaseNum
+           
+           
            x_img_train_tree[sample_id, feature[node_id]+32*3] = increaseNum
-           x_img_train_tree[sample_id, feature[node_id]+33*3] = increaseNum
+           
     else:
         decreaseNum =  threshold[node_id]*0.5
         x_img_train_tree[sample_id, feature[node_id]]= 0
         if feature[node_id] >33*3 and feature[node_id]<pixelNum-33*3 and feature[node_id] in index:
            x_img_train_tree[sample_id, feature[node_id]-1*3] = decreaseNum
            x_img_train_tree[sample_id, feature[node_id]+1*3] = decreaseNum
-           x_img_train_tree[sample_id, feature[node_id]-33*3] = decreaseNum
+           
            x_img_train_tree[sample_id, feature[node_id]-32*3] = decreaseNum
-           x_img_train_tree[sample_id, feature[node_id]-31*3] = decreaseNum
-           x_img_train_tree[sample_id, feature[node_id]+31*3] = decreaseNum
+           
+           
            x_img_train_tree[sample_id, feature[node_id]+32*3] = decreaseNum
-           x_img_train_tree[sample_id, feature[node_id]+33*3] = decreaseNum
+           
 plt.imshow(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3)[sample_id])
 print(model.predict(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3))[sample_id])
 print(clf.predict(x_img_train_tree)[sample_id])
