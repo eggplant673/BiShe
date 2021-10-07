@@ -41,7 +41,7 @@ leave_id = clf.apply(x_img_train_tree)
 # a group of samples. First, let's make it for the sample.
 
 # HERE IS WHAT YOU WANT
-sample_id = 22
+sample_id = 26
 # plt.imshow(x_img_train[sample_id])
 # plt.show()
 # plt.imshow(x_train[2].reshape(28,28))
