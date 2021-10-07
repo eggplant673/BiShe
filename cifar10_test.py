@@ -41,9 +41,9 @@ leave_id = clf.apply(x_img_train_tree)
 # a group of samples. First, let's make it for the sample.
 
 # HERE IS WHAT YOU WANT
-sample_id = 10
-plt.imshow(x_img_train[sample_id])
-plt.show()
+sample_id = 22
+# plt.imshow(x_img_train[sample_id])
+# plt.show()
 # plt.imshow(x_train[2].reshape(28,28))
 # plt.show()
 
@@ -83,30 +83,30 @@ for node_id in node_index:
 # joblib.dump(clf,'cifar10.pkl')
 
 #决策单个图片依赖的像素点
-img = [0]*32*32*3
+pixelNum = 32*32*3
 for node_id in node_index:
     if (x_img_train_tree[sample_id, feature[node_id]] <= threshold[node_id]):
         x_img_train_tree[sample_id, feature[node_id]] = threshold[node_id]+0.8*(1-threshold[node_id])
-        # if feature[node_id] >0 and feature[node_id]+33<1024:
-        #    x_img_train_tree[sample_id, feature[node_id]-1] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]+1] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]-33] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]-32] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]-31] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]+31] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]+32] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]+33] = threshold[node_id]+10
+        if feature[node_id]-33*3 >0 and feature[node_id]+33*3<pixelNum:
+           x_img_train_tree[sample_id, feature[node_id]-1*3] = threshold[node_id]+10
+           x_img_train_tree[sample_id, feature[node_id]+1*3] = threshold[node_id]+10
+           x_img_train_tree[sample_id, feature[node_id]-33*3] = threshold[node_id]+10
+           x_img_train_tree[sample_id, feature[node_id]-32*3] = threshold[node_id]+10
+           x_img_train_tree[sample_id, feature[node_id]-31*3] = threshold[node_id]+10
+           x_img_train_tree[sample_id, feature[node_id]+31*3] = threshold[node_id]+10
+           x_img_train_tree[sample_id, feature[node_id]+32*3] = threshold[node_id]+10
+           x_img_train_tree[sample_id, feature[node_id]+33*3] = threshold[node_id]+10
     else:
         x_img_train_tree[sample_id, feature[node_id]]= threshold[node_id]*0.2
-        # if feature[node_id]-33 >0 and feature[node_id]+33<1024:
-        #    x_img_train_tree[sample_id, feature[node_id]-1] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]+1] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]-33] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]-32] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]-31] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]+31] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]+32] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]+33] = threshold[node_id]-10
+        if feature[node_id]-33*3 >0 and feature[node_id]+33*3<pixelNum:
+           x_img_train_tree[sample_id, feature[node_id]-1*3] = threshold[node_id]-10
+           x_img_train_tree[sample_id, feature[node_id]+1*3] = threshold[node_id]-10
+           x_img_train_tree[sample_id, feature[node_id]-33*3] = threshold[node_id]-10
+           x_img_train_tree[sample_id, feature[node_id]-32*3] = threshold[node_id]-10
+           x_img_train_tree[sample_id, feature[node_id]-31*3] = threshold[node_id]-10
+           x_img_train_tree[sample_id, feature[node_id]+31*3] = threshold[node_id]-10
+           x_img_train_tree[sample_id, feature[node_id]+32*3] = threshold[node_id]-10
+           x_img_train_tree[sample_id, feature[node_id]+33*3] = threshold[node_id]-10
 plt.imshow(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3)[sample_id])
 print(model.predict(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3))[sample_id])
 print(clf.predict(x_img_train_tree)[sample_id])
