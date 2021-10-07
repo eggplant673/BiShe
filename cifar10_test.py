@@ -82,37 +82,6 @@ for node_id in node_index:
 # import joblib
 # joblib.dump(clf,'cifar10.pkl')
 
-#决策单个图片依赖的像素点
-img = [0]*32*32*3
-for node_id in node_index:
-    if (x_img_train_tree[sample_id, feature[node_id]] <= threshold[node_id]):
-        x_img_train_tree[sample_id, feature[node_id]] = threshold[node_id]+0.8*(1-threshold[node_id])
-        # if feature[node_id] >0 and feature[node_id]+33<1024:
-        #    x_img_train_tree[sample_id, feature[node_id]-1] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]+1] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]-33] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]-32] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]-31] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]+31] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]+32] = threshold[node_id]+10
-        #    x_img_train_tree[sample_id, feature[node_id]+33] = threshold[node_id]+10
-    else:
-        x_img_train_tree[sample_id, feature[node_id]]= threshold[node_id]*0.2
-        # if feature[node_id]-33 >0 and feature[node_id]+33<1024:
-        #    x_img_train_tree[sample_id, feature[node_id]-1] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]+1] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]-33] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]-32] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]-31] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]+31] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]+32] = threshold[node_id]-10
-        #    x_img_train_tree[sample_id, feature[node_id]+33] = threshold[node_id]-10
-plt.imshow(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3)[sample_id])
-print(model.predict(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3))[sample_id])
-print(clf.predict(x_img_train_tree)[sample_id])
-plt.show()
-
-
 # 找出每个数字决策树偏好判断的像素点
 sample_ids = [i for i in range(len(x_img_train_tree)) if clf.predict([x_img_train_tree[i]])==[y_label_train[sample_id]]]
 print(len(sample_ids))
@@ -123,7 +92,7 @@ for id in sample_ids:
                                     node_indicator.indptr[id + 1]]
     for node_id in node_index:             
         count[feature[node_id]]+=1
-index = [i for i in range(pixelNum) if count[i]>=len(sample_ids)*0.40]
+index = [i for i in range(pixelNum) if count[i]>=len(sample_ids)*0.30]
 img = [0]*pixelNum 
 for i in index:
     img[i]=255
@@ -132,23 +101,52 @@ plt.imshow(np.array(img).reshape(32,32,3))
 plt.show()
 
 
-# # 改变决策分支所依赖的像素点的值
-# newIndex = []
-# for node_id in index:
-#     if(node_id>33 and node_id+33 < pixelNum ):
-#         newIndex.append(node_id+1)
-#         newIndex.append(node_id-1)
-#         newIndex.append(node_id-32)
-#         newIndex.append(node_id-33)
-#         newIndex.append(node_id-31)
-#         newIndex.append(node_id+31)
-#         newIndex.append(node_id+32)
-#         newIndex.append(node_id+33)     
-#         newIndex.append(node_id)  
-# for node_id in newIndex:
-#         x_img_train_tree[sample_id, node_id] = 0.1
-# plt.imshow(x_img_train_tree[sample_id].reshape(32,32,3))
-# plt.show()
+#决策单个图片依赖的像素点
+for node_id in node_index:
+    if (x_img_train_tree[sample_id, feature[node_id]] <= threshold[node_id]):
+        x_img_train_tree[sample_id, feature[node_id]] = 1
+        if feature[node_id] >33*3 and feature[node_id]<pixelNum-33*3 and feature[node_id] in index:
+           x_img_train_tree[sample_id, feature[node_id]-1*3],
+           x_img_train_tree[sample_id, feature[node_id]+1*3],  
+           x_img_train_tree[sample_id, feature[node_id]-33*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-32*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-31*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+31*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+32*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+33*3] = 1
+    else:
+        x_img_train_tree[sample_id, feature[node_id]]= 0
+        if feature[node_id] >33*3 and feature[node_id]<pixelNum-33*3 and feature[node_id] in index:
+           x_img_train_tree[sample_id, feature[node_id]-1*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+1*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-33*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-32*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-31*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+31*3],
+           x_img_train_tree[sample_id, feature[node_id]+32*3],
+           x_img_train_tree[sample_id, feature[node_id]+33*3] = 0
+plt.imshow(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3)[sample_id])
+print(model.predict(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3))[sample_id])
+print(clf.predict(x_img_train_tree)[sample_id])
+plt.show()
+
+# 改变决策分支所依赖的像素点的值
+newIndex = []
+for node_id in index:
+    if(node_id>33*33 and node_id+33*33 < pixelNum ):
+        newIndex.append(node_id+1*33)
+        newIndex.append(node_id-1*33)
+        newIndex.append(node_id-32*33)
+        newIndex.append(node_id-33*33)
+        newIndex.append(node_id-31*33)
+        newIndex.append(node_id+31)
+        newIndex.append(node_id+32)
+        newIndex.append(node_id+33)     
+        newIndex.append(node_id)  
+for node_id in newIndex:
+        x_img_train_tree[sample_id, node_id] = 0
+plt.imshow(x_img_train_tree[sample_id].reshape(32,32,3))
+plt.show()
 
 # print(clf.predict([x_img_train_tree[sample_id]]))
 # print(model.predict(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3))[sample_id])
