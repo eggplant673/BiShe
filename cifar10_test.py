@@ -88,25 +88,25 @@ for node_id in node_index:
     if (x_img_train_tree[sample_id, feature[node_id]] <= threshold[node_id]):
         x_img_train_tree[sample_id, feature[node_id]] = threshold[node_id]+0.8*(1-threshold[node_id])
         if feature[node_id]-33*3 >0 and feature[node_id]+33*3<pixelNum:
-           x_img_train_tree[sample_id, feature[node_id]-1*3] = threshold[node_id]+10
-           x_img_train_tree[sample_id, feature[node_id]+1*3] = threshold[node_id]+10
-           x_img_train_tree[sample_id, feature[node_id]-33*3] = threshold[node_id]+10
-           x_img_train_tree[sample_id, feature[node_id]-32*3] = threshold[node_id]+10
-           x_img_train_tree[sample_id, feature[node_id]-31*3] = threshold[node_id]+10
-           x_img_train_tree[sample_id, feature[node_id]+31*3] = threshold[node_id]+10
-           x_img_train_tree[sample_id, feature[node_id]+32*3] = threshold[node_id]+10
-           x_img_train_tree[sample_id, feature[node_id]+33*3] = threshold[node_id]+10
+           x_img_train_tree[sample_id, feature[node_id]-1*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+1*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-33*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-32*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-31*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+31*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+32*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+33*3] = threshold[node_id]+0.8*(1-threshold[node_id])
     else:
         x_img_train_tree[sample_id, feature[node_id]]= threshold[node_id]*0.2
         if feature[node_id]-33*3 >0 and feature[node_id]+33*3<pixelNum:
-           x_img_train_tree[sample_id, feature[node_id]-1*3] = threshold[node_id]-10
-           x_img_train_tree[sample_id, feature[node_id]+1*3] = threshold[node_id]-10
-           x_img_train_tree[sample_id, feature[node_id]-33*3] = threshold[node_id]-10
-           x_img_train_tree[sample_id, feature[node_id]-32*3] = threshold[node_id]-10
-           x_img_train_tree[sample_id, feature[node_id]-31*3] = threshold[node_id]-10
-           x_img_train_tree[sample_id, feature[node_id]+31*3] = threshold[node_id]-10
-           x_img_train_tree[sample_id, feature[node_id]+32*3] = threshold[node_id]-10
-           x_img_train_tree[sample_id, feature[node_id]+33*3] = threshold[node_id]-10
+           x_img_train_tree[sample_id, feature[node_id]-1*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+1*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-33*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-32*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-31*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+31*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+32*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+33*3] = threshold[node_id]*0.2
 plt.imshow(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3)[sample_id])
 print(model.predict(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3))[sample_id])
 print(clf.predict(x_img_train_tree)[sample_id])
