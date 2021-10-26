@@ -18,6 +18,11 @@ def load_mnist():
     x_test, y_test = f['x_test'], f['y_test']
     f.close()
     return (x_train, y_train), (x_test, y_test)
+
+def imgChange(img, pixels, changeTo):
+    for pixel in pixels:
+        if img[pixel] < changeTo:
+            img[pixel] = changeTo
  
 (x_train,y_train),(x_test,y_test) = load_mnist()
 # print(x_test.shape)
@@ -55,9 +60,9 @@ leave_id = clf.apply(x_train)
 # a group of samples. First, let's make it for the sample.
 
 # HERE IS WHAT YOU WANT
-sample_id = 4998
+sample_id = 26802
 import copy
-copy_img = copy.deepcopy(x_train[sample_id]) 
+origin_img = copy.deepcopy(x_train[sample_id]) 
 plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
 plt.show()
 # plt.imshow(x_train[2].reshape(28,28))
@@ -74,6 +79,7 @@ node_index = node_indicator.indices[node_indicator.indptr[sample_id]:
 #         x_train[sample_id, feature[node_id]]=threshold[node_id]-1
 
 print('Rules used to predict sample %s: %s' % (sample_id,y_train[sample_id]))
+pixels = []
 for node_id in node_index:
 
     if leave_id[sample_id] == node_id:  # <-- changed != to ==
@@ -93,23 +99,28 @@ for node_id in node_index:
                  x_train[sample_id, feature[node_id]], # <-- changed i to sample_id
                  threshold_sign,
                  threshold[node_id]))
+        pixels.append(feature[node_id])
 # joblib.dump(clf,'mnist.pkl')
 
 # 找出每个数字决策树偏好判断的像素点
 indexLength = 0
+index = []
 times = 0
-while indexLength<10:
-    sample_ids = [i for i in range(len(x_train)) if clf.predict([x_train[i]])==[y_train[sample_id]]]
-    print(len(sample_ids))
-    count = [0]*784
-    for id in sample_ids:
-        node_index = node_indicator.indices[node_indicator.indptr[id]:
-                                        node_indicator.indptr[id + 1]]
-        for node_id in node_index:             
-            count[feature[node_id]]+=1
-    index = [i for i in range(784) if count[i]>=len(sample_ids)*(0.75-0.1*times)]
+count = [0]*784
+
+sample_ids = [i for i in range(len(x_train)) if clf.predict([x_train[i]])==[y_train[sample_id]]]
+for id in sample_ids:
+    node_index = node_indicator.indices[node_indicator.indptr[id]:
+                                    node_indicator.indptr[id + 1]]
+    for node_id in node_index:             
+        count[feature[node_id]]+=1
+
+# 确定最少需要的像素点
+while indexLength<15:
+    index = [i for i in range(784) if count[i]>=len(sample_ids)*(0.7-0.1*times)]
     indexLength = len(index)
-    times+=1
+    times+=0.5
+print(0.8-0.1*times)
 
 img = [0]*784
 for i in index:
@@ -125,33 +136,57 @@ print(aa)
 
 # 改变决策分支所依赖的像素点的值
 newIndex = []
-pixels = []
-for pixel in range(784):
-    if x_train[sample_id,pixel]!=0:
-        pixels.append(pixel)
-for node_id in index:
-    if(node_id>30 and node_id < 755 ):
-        newIndex.append(node_id+1)
-        newIndex.append(node_id-1)
-        newIndex.append(node_id-28)
-        newIndex.append(node_id-29)
-        newIndex.append(node_id-27)
-        newIndex.append(node_id+28)
-        newIndex.append(node_id+29)
-        newIndex.append(node_id+27)     
-for node_id in index:
-    if (x_train[sample_id, node_id] <= threshold[node_id]):
-        x_train[sample_id, node_id] = threshold[node_id]+1
-    else:
-        x_train[sample_id, node_id]= threshold[node_id]*0.3
-newIndex = list(set(newIndex))
-for node_id in newIndex:
-        x_train[sample_id, node_id] = 30
+incIndex = []
+decIndex = []
+changeRatio = 0.1
+BackgroudFuzz = 10
+originResult = np.argmax(model.predict(x_train)[sample_id])
+mutatedResult = originResult
 
-aa=model.predict(x_train)[sample_id]
-print(aa)
-print(clf.predict([copy_img]))
-diff=np.linalg.norm(copy_img/255-x_train[sample_id]/255,ord=2)
+indexNotIn = list(set(index)-set(pixels))
+for node_id in indexNotIn:
+        if(node_id>30 and node_id < 755 ):
+            newIndex.append(node_id)
+            newIndex.append(node_id+1)
+            newIndex.append(node_id-1)
+            newIndex.append(node_id-28)
+            newIndex.append(node_id-29)
+            newIndex.append(node_id-27)
+            newIndex.append(node_id+28)
+            newIndex.append(node_id+29)
+            newIndex.append(node_id+27)  
+
+def imgDChange(img, pixels, dec):
+    for pixel in pixels:
+        if img[pixel] > dec:
+            img[pixel] -= dec
+
+while(mutatedResult==originResult and BackgroudFuzz<60):   
+    for node_id in node_index:
+        if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):
+            # x_train[sample_id, feature[node_id]] = threshold[node_id]+(255-threshold[node_id])*changeRatio
+            if(feature[node_id] > 30 and feature[node_id] < 755 ):
+                newIndex.append(feature[node_id])
+                newIndex.append(feature[node_id]+1)
+                newIndex.append(feature[node_id]-1)
+                newIndex.append(feature[node_id]-28)
+                newIndex.append(feature[node_id]-29)
+                newIndex.append(feature[node_id]-27)
+                newIndex.append(feature[node_id]+28)
+                newIndex.append(feature[node_id]+29)
+                newIndex.append(feature[node_id]+27) 
+        else:
+            imgDChange(x_train[sample_id],
+                        [feature[node_id] , feature[node_id]+1, feature[node_id]-1, feature[node_id]+27, feature[node_id]-27, feature[node_id]+28, feature[node_id]-28, feature[node_id]+29, feature[node_id]-29],
+                        BackgroudFuzz*0.5)
+    imgChange(x_train[sample_id],newIndex,BackgroudFuzz)
+    mutatedResult = np.argmax(model.predict(x_train)[sample_id])        
+    BackgroudFuzz += 10
+    changeRatio+=0.1
+
+print(model.predict(x_train)[sample_id])
+print(mutatedResult)
+diff=np.linalg.norm(origin_img/255-x_train[sample_id]/255,ord=2)
 print(diff)
 plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
 plt.show()
