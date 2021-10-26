@@ -1,3 +1,4 @@
+from os import times
 from typing import List, Set
 import numpy as np
 import matplotlib.pyplot as plt
@@ -54,8 +55,10 @@ leave_id = clf.apply(x_train)
 # a group of samples. First, let's make it for the sample.
 
 # HERE IS WHAT YOU WANT
-sample_id = 6
-plt.imshow(x_train[sample_id].reshape(28,28))
+sample_id = 4998
+import copy
+copy_img = copy.deepcopy(x_train[sample_id]) 
+plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
 plt.show()
 # plt.imshow(x_train[2].reshape(28,28))
 # plt.show()
@@ -93,20 +96,26 @@ for node_id in node_index:
 # joblib.dump(clf,'mnist.pkl')
 
 # 找出每个数字决策树偏好判断的像素点
-sample_ids = [i for i in range(len(x_train)) if clf.predict([x_train[i]])==[y_train[sample_id]]]
-print(len(sample_ids))
-count = [0]*784
-for id in sample_ids:
-    node_index = node_indicator.indices[node_indicator.indptr[id]:
-                                    node_indicator.indptr[id + 1]]
-    for node_id in node_index:             
-        count[feature[node_id]]+=1
-index = [i for i in range(784) if count[i]>=len(sample_ids)*0.50]
+indexLength = 0
+times = 0
+while indexLength<10:
+    sample_ids = [i for i in range(len(x_train)) if clf.predict([x_train[i]])==[y_train[sample_id]]]
+    print(len(sample_ids))
+    count = [0]*784
+    for id in sample_ids:
+        node_index = node_indicator.indices[node_indicator.indptr[id]:
+                                        node_indicator.indptr[id + 1]]
+        for node_id in node_index:             
+            count[feature[node_id]]+=1
+    index = [i for i in range(784) if count[i]>=len(sample_ids)*(0.75-0.1*times)]
+    indexLength = len(index)
+    times+=1
+
 img = [0]*784
 for i in index:
     img[i]=255
 print(index)
-plt.imshow(np.array(img).reshape(28,28))
+plt.imshow(np.array(img).reshape(28,28),cmap='gray')
 plt.show()
 
 from keras.models import load_model
@@ -134,13 +143,15 @@ for node_id in index:
     if (x_train[sample_id, node_id] <= threshold[node_id]):
         x_train[sample_id, node_id] = threshold[node_id]+1
     else:
-        x_train[sample_id, node_id]= 30
+        x_train[sample_id, node_id]= threshold[node_id]*0.3
 newIndex = list(set(newIndex))
 for node_id in newIndex:
         x_train[sample_id, node_id] = 30
-plt.imshow(x_train[sample_id].reshape(28,28))
-plt.show()
 
 aa=model.predict(x_train)[sample_id]
-print(clf.predict([x_train[sample_id]]))
 print(aa)
+print(clf.predict([copy_img]))
+diff=np.linalg.norm(copy_img/255-x_train[sample_id]/255,ord=2)
+print(diff)
+plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
+plt.show()

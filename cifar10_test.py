@@ -41,25 +41,17 @@ leave_id = clf.apply(x_img_train_tree)
 # a group of samples. First, let's make it for the sample.
 
 # HERE IS WHAT YOU WANT
-sample_id = 8
-# plt.imshow(x_img_train[sample_id])
-# plt.show()
-# plt.imshow(x_train[2].reshape(28,28))
-# plt.show()
+sample_id = 13
+plt.imshow(x_img_train[sample_id])
+plt.show()
 
 node_index = node_indicator.indices[node_indicator.indptr[sample_id]:
                                     node_indicator.indptr[sample_id + 1]]
 
-# 改变决策分支所依赖的像素点的值
-# for node_id in node_index:
-#     if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):
-#         x_train[sample_id, feature[node_id]]=threshold[node_id]+1
-#     else:
-#         x_train[sample_id, feature[node_id]]=threshold[node_id]-1
-
 print('Rules used to predict sample %s: %s' % (sample_id,y_label_train[sample_id]))
 print(model.predict(x_img_train)[sample_id])
 print(clf.predict(x_img_train_tree)[sample_id])
+result = model.predict(x_img_train)[sample_id]
 for node_id in node_index:
 
     if leave_id[sample_id] == node_id:  # <-- changed != to ==
@@ -83,7 +75,8 @@ for node_id in node_index:
 # joblib.dump(clf,'cifar10.pkl')
 
 # 找出每个数字决策树偏好判断的像素点
-sample_ids = [i for i in range(len(x_img_train_tree)) if clf.predict([x_img_train_tree[i]])==[y_label_train[sample_id]]]
+modelResult = model.predict([x_img_train])
+sample_ids = [i for i in range(len(x_img_train_tree)) if  np.argmax(modelResult[i]) == np.argmax(result)]
 print(len(sample_ids))
 pixelNum = 32*32*3
 count = [0]*pixelNum 
@@ -92,7 +85,7 @@ for id in sample_ids:
                                     node_indicator.indptr[id + 1]]
     for node_id in node_index:             
         count[feature[node_id]]+=1
-index = [i for i in range(pixelNum) if count[i]>=len(sample_ids)*0.30]
+index = [i for i in range(pixelNum) if count[i]>=len(sample_ids)*0.10]
 img = [0]*pixelNum 
 for i in index:
     img[i]=255
@@ -100,33 +93,62 @@ print(index)
 # plt.imshow(np.array(img).reshape(32,32,3))
 # plt.show()
 
+attack_sample_ids = [i for i in range(len(x_img_train_tree)) if  np.argmax(modelResult[i]) == 7]
+print(len(attack_sample_ids))
+pixelNum = 32*32*3
+count = [0]*pixelNum 
+for id in attack_sample_ids:
+    node_index = node_indicator.indices[node_indicator.indptr[id]:
+                                    node_indicator.indptr[id + 1]]
+    for node_id in node_index:             
+        count[feature[node_id]]+=1
+index2 = [i for i in range(pixelNum) if count[i]>=len(attack_sample_ids)*0.10]
+print(set(index2)&set(index))
 
+
+decisionPixels = []
 #决策单个图片依赖的像素点
 for node_id in node_index:
-    if (x_img_train_tree[sample_id, feature[node_id]] <= threshold[node_id]) and feature[node_id] in index :
-        increaseNum =  threshold[node_id] + 0.5*(1- threshold[node_id])
+    decisionPixels.append(feature[node_id])
+    if (x_img_train_tree[sample_id, feature[node_id]] <= threshold[node_id]) :
+        increaseNum =  threshold[node_id]+(1-threshold[node_id])*0.4
         x_img_train_tree[sample_id, feature[node_id]] = increaseNum
         if feature[node_id] >33*3 and feature[node_id]<pixelNum-33*3 and feature[node_id] in index:
-           x_img_train_tree[sample_id, feature[node_id]-1*3]= increaseNum
-           x_img_train_tree[sample_id, feature[node_id]+1*3]= increaseNum
-           
+           x_img_train_tree[sample_id, feature[node_id]-1*3] = increaseNum
+           x_img_train_tree[sample_id, feature[node_id]+1*3] = increaseNum        
+           x_img_train_tree[sample_id, feature[node_id]-31*3] = increaseNum
            x_img_train_tree[sample_id, feature[node_id]-32*3] = increaseNum
-           
-           
+           x_img_train_tree[sample_id, feature[node_id]-33*3] = increaseNum
+           x_img_train_tree[sample_id, feature[node_id]+31*3] = increaseNum
            x_img_train_tree[sample_id, feature[node_id]+32*3] = increaseNum
-           
-    else:
-        decreaseNum =  threshold[node_id]*0.5
-        x_img_train_tree[sample_id, feature[node_id]]= 0
+           x_img_train_tree[sample_id, feature[node_id]+33*3] = increaseNum
+    elif x_img_train_tree[sample_id, feature[node_id]] > threshold[node_id]:
+        decreaseNum =  threshold[node_id]*0.6
+        x_img_train_tree[sample_id, feature[node_id]]= decreaseNum
         if feature[node_id] >33*3 and feature[node_id]<pixelNum-33*3 and feature[node_id] in index:
            x_img_train_tree[sample_id, feature[node_id]-1*3] = decreaseNum
-           x_img_train_tree[sample_id, feature[node_id]+1*3] = decreaseNum
-           
-           x_img_train_tree[sample_id, feature[node_id]-32*3] = decreaseNum
-           
-           
+           x_img_train_tree[sample_id, feature[node_id]+1*3] = decreaseNum          
+           x_img_train_tree[sample_id, feature[node_id]-31*3] = decreaseNum      
+           x_img_train_tree[sample_id, feature[node_id]-32*3] = decreaseNum  
+           x_img_train_tree[sample_id, feature[node_id]-33*3] = decreaseNum            
+           x_img_train_tree[sample_id, feature[node_id]+31*3] = decreaseNum
            x_img_train_tree[sample_id, feature[node_id]+32*3] = decreaseNum
+           x_img_train_tree[sample_id, feature[node_id]+33*3] = decreaseNum
            
+index = list(set(index2)-set(index))
+for i in index:
+    changeRatio = 2
+    if i >33*3 and i<pixelNum-33*3 and i not in decisionPixels:
+        x_img_train_tree[sample_id, i] *= changeRatio
+        x_img_train_tree[sample_id, i-1*3] *= changeRatio
+        x_img_train_tree[sample_id, i+1*3] *= changeRatio
+        x_img_train_tree[sample_id, i-32*3] *= changeRatio
+        x_img_train_tree[sample_id, i-33*3] *= changeRatio
+        x_img_train_tree[sample_id, i-31*3] *= changeRatio
+        x_img_train_tree[sample_id, i+32*3] *= changeRatio
+        x_img_train_tree[sample_id, i+31*3] *= changeRatio
+        x_img_train_tree[sample_id, i+33*3] *= changeRatio
+
 plt.imshow(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3)[sample_id])
 print(model.predict(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3))[sample_id])
 print(clf.predict(x_img_train_tree)[sample_id])
