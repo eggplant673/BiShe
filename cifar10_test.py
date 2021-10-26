@@ -44,6 +44,11 @@ leave_id = clf.apply(x_img_train_tree)
 sample_id = 13
 plt.imshow(x_img_train[sample_id])
 plt.show()
+sample_id = 26
+# plt.imshow(x_img_train[sample_id])
+# plt.show()
+# plt.imshow(x_train[2].reshape(28,28))
+# plt.show()
 
 node_index = node_indicator.indices[node_indicator.indptr[sample_id]:
                                     node_indicator.indptr[sample_id + 1]]
@@ -73,6 +78,36 @@ for node_id in node_index:
                  threshold[node_id]))
 # import joblib
 # joblib.dump(clf,'cifar10.pkl')
+
+#决策单个图片依赖的像素点
+pixelNum = 32*32*3
+for node_id in node_index:
+    if (x_img_train_tree[sample_id, feature[node_id]] <= threshold[node_id]):
+        x_img_train_tree[sample_id, feature[node_id]] = threshold[node_id]+0.8*(1-threshold[node_id])
+        if feature[node_id]-33*3 >0 and feature[node_id]+33*3<pixelNum:
+           x_img_train_tree[sample_id, feature[node_id]-1*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+1*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-33*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-32*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-31*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+31*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+32*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+33*3] = threshold[node_id]+0.8*(1-threshold[node_id])
+    else:
+        x_img_train_tree[sample_id, feature[node_id]]= threshold[node_id]*0.2
+        if feature[node_id]-33*3 >0 and feature[node_id]+33*3<pixelNum:
+           x_img_train_tree[sample_id, feature[node_id]-1*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+1*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-33*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-32*3] ,
+           x_img_train_tree[sample_id, feature[node_id]-31*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+31*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+32*3] ,
+           x_img_train_tree[sample_id, feature[node_id]+33*3] = threshold[node_id]*0.2
+plt.imshow(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3)[sample_id])
+print(model.predict(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3))[sample_id])
+print(clf.predict(x_img_train_tree)[sample_id])
+plt.show()
 
 # 找出每个数字决策树偏好判断的像素点
 modelResult = model.predict([x_img_train])
