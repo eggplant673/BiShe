@@ -56,11 +56,8 @@ node_indicator = clf.decision_path(x_train)
 
 leave_id = clf.apply(x_train)
 
-# Now, it's possible to get the tests that were used to predict a sample or
-# a group of samples. First, let's make it for the sample.
-
 # HERE IS WHAT YOU WANT
-sample_id = 26802
+sample_id = 57026
 import copy
 origin_img = copy.deepcopy(x_train[sample_id]) 
 plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
@@ -71,12 +68,6 @@ plt.show()
 node_index = node_indicator.indices[node_indicator.indptr[sample_id]:
                                     node_indicator.indptr[sample_id + 1]]
 
-# 改变决策分支所依赖的像素点的值
-# for node_id in node_index:
-#     if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):
-#         x_train[sample_id, feature[node_id]]=threshold[node_id]+1
-#     else:
-#         x_train[sample_id, feature[node_id]]=threshold[node_id]-1
 
 print('Rules used to predict sample %s: %s' % (sample_id,y_train[sample_id]))
 pixels = []
@@ -116,7 +107,7 @@ for id in sample_ids:
         count[feature[node_id]]+=1
 
 # 确定最少需要的像素点
-while indexLength<15:
+while indexLength<12:
     index = [i for i in range(784) if count[i]>=len(sample_ids)*(0.7-0.1*times)]
     indexLength = len(index)
     times+=0.5
@@ -178,7 +169,7 @@ while(mutatedResult==originResult and BackgroudFuzz<60):
         else:
             imgDChange(x_train[sample_id],
                         [feature[node_id] , feature[node_id]+1, feature[node_id]-1, feature[node_id]+27, feature[node_id]-27, feature[node_id]+28, feature[node_id]-28, feature[node_id]+29, feature[node_id]-29],
-                        BackgroudFuzz*0.5)
+                        BackgroudFuzz)
     imgChange(x_train[sample_id],newIndex,BackgroudFuzz)
     mutatedResult = np.argmax(model.predict(x_train)[sample_id])        
     BackgroudFuzz += 10
