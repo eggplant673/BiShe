@@ -36,10 +36,11 @@ clf = joblib.load('mnist.pkl')
 x_train = x_train.reshape((60000,784))
 x_test = x_test.reshape((10000,784))
 
+
 # from keras.models import load_model
-# model = load_model('my_model.h5')
+# model = load_model('mnist_model2.h5')
 # clf=DecisionTreeClassifier()
-# clf.fit(x_train,np.argmax(model.predict(x_train),axis=1))
+# clf.fit(x_train,np.argmax(model.predict(x_train.reshape(60000,28,28,1)),axis=1))
 # print(clf.score(x_train,y_train))
 # print(clf.score(x_test,y_test))
 
@@ -57,7 +58,7 @@ node_indicator = clf.decision_path(x_train)
 leave_id = clf.apply(x_train)
 
 # HERE IS WHAT YOU WANT
-sample_id = 57026
+sample_id = 729
 import copy
 origin_img = copy.deepcopy(x_train[sample_id]) 
 plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
@@ -91,6 +92,7 @@ for node_id in node_index:
                  threshold_sign,
                  threshold[node_id]))
         pixels.append(feature[node_id])
+# joblib.dump(clf,'mnist2.pkl')
 # joblib.dump(clf,'mnist.pkl')
 
 # 找出每个数字决策树偏好判断的像素点
@@ -108,7 +110,7 @@ for id in sample_ids:
 
 # 确定最少需要的像素点
 while indexLength<12:
-    index = [i for i in range(784) if count[i]>=len(sample_ids)*(0.7-0.1*times)]
+    index = [i for i in range(784) if count[i]>=len(sample_ids)*(0.8-0.1*times)]
     indexLength = len(index)
     times+=0.5
 print(0.8-0.1*times)
@@ -129,12 +131,12 @@ print(aa)
 newIndex = []
 incIndex = []
 decIndex = []
-changeRatio = 0.1
 BackgroudFuzz = 10
 originResult = np.argmax(model.predict(x_train)[sample_id])
 mutatedResult = originResult
 
 indexNotIn = list(set(index)-set(pixels))
+print(indexNotIn)
 for node_id in indexNotIn:
         if(node_id>30 and node_id < 755 ):
             newIndex.append(node_id)
@@ -152,7 +154,7 @@ def imgDChange(img, pixels, dec):
         if img[pixel] > dec:
             img[pixel] -= dec
 
-while(mutatedResult==originResult and BackgroudFuzz<60):   
+while(mutatedResult==originResult and BackgroudFuzz<100):   
     for node_id in node_index:
         if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):
             # x_train[sample_id, feature[node_id]] = threshold[node_id]+(255-threshold[node_id])*changeRatio
@@ -173,7 +175,6 @@ while(mutatedResult==originResult and BackgroudFuzz<60):
     imgChange(x_train[sample_id],newIndex,BackgroudFuzz)
     mutatedResult = np.argmax(model.predict(x_train)[sample_id])        
     BackgroudFuzz += 10
-    changeRatio+=0.1
 
 print(model.predict(x_train)[sample_id])
 print(mutatedResult)
