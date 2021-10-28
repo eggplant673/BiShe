@@ -64,7 +64,7 @@ node_indicator = clf.decision_path(x_train)
 leave_id = clf.apply(x_train)
 
 # HERE IS WHAT YOU WANT
-sample_id = 4998
+sample_id = 8531
 import copy
 origin_img = copy.deepcopy(x_train[sample_id]) 
 plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
@@ -131,7 +131,7 @@ for id in sample_ids:
         count[feature[node_id]]+=1
 
 # 确定最少需要的像素点
-while indexLength<30:
+while indexLength<20:
     index = [i for i in range(784) if count[i]>=len(sample_ids)*(0.8-0.1*times)]
     indexLength = len(index)
     times+=0.5
@@ -188,9 +188,9 @@ def addToIndex(toindex, pixel):
     toindex.append(pixel+54)
     toindex.append(pixel+58)
     
-for pixel in indexNotIn:
-        if(pixel>60 and pixel < 720 ):
-            addToIndex(newIndex,pixel)
+# for pixel in indexNotIn:
+#         if(pixel>60 and pixel < 720 ):
+#             addToIndex(newIndex,pixel)
 for node_id in node_index:
     if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):
         # x_train[sample_id, feature[node_id]] = threshold[node_id]+(255-threshold[node_id])*changeRatio
