@@ -23,6 +23,11 @@ def imgChange(img, pixels, changeTo):
     for pixel in pixels:
         if img[pixel] < changeTo:
             img[pixel] = changeTo
+
+def imgDChange(img, pixels, dec):
+    for pixel in pixels:
+        if img[pixel] > dec:
+            img[pixel] -= dec
  
 (x_train,y_train),(x_test,y_test) = load_mnist()
 # print(x_test.shape)
@@ -31,16 +36,16 @@ def imgChange(img, pixels, changeTo):
 
 # 训练，预测
 import pickle
-clf = joblib.load('mnist.pkl')
+clf = joblib.load('mnist2.pkl')
 
 x_train = x_train.reshape((60000,784))
 x_test = x_test.reshape((10000,784))
 
 
 # from keras.models import load_model
-# model = load_model('mnist_model2.h5')
+# model = load_model('my_model.h5')
 # clf=DecisionTreeClassifier()
-# clf.fit(x_train,np.argmax(model.predict(x_train.reshape(60000,28,28,1)),axis=1))
+# clf.fit(x_train,np.argmax(model.predict(x_train),axis=1))
 # print(clf.score(x_train,y_train))
 # print(clf.score(x_test,y_test))
 
@@ -58,7 +63,7 @@ node_indicator = clf.decision_path(x_train)
 leave_id = clf.apply(x_train)
 
 # HERE IS WHAT YOU WANT
-sample_id = 729
+sample_id = 3194
 import copy
 origin_img = copy.deepcopy(x_train[sample_id]) 
 plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
@@ -109,7 +114,7 @@ for id in sample_ids:
         count[feature[node_id]]+=1
 
 # 确定最少需要的像素点
-while indexLength<12:
+while indexLength<30:
     index = [i for i in range(784) if count[i]>=len(sample_ids)*(0.8-0.1*times)]
     indexLength = len(index)
     times+=0.5
@@ -123,8 +128,8 @@ plt.imshow(np.array(img).reshape(28,28),cmap='gray')
 plt.show()
 
 from keras.models import load_model
-model = load_model('my_model.h5')
-aa=model.predict(x_train)[sample_id]
+model = load_model('mnist_model2.h5')
+aa=model.predict(x_train.reshape(len(x_train),28, 28, 1))[sample_id]
 print(aa)
 
 # 改变决策分支所依赖的像素点的值
@@ -132,13 +137,13 @@ newIndex = []
 incIndex = []
 decIndex = []
 BackgroudFuzz = 10
-originResult = np.argmax(model.predict(x_train)[sample_id])
+originResult = np.argmax(model.predict(x_train.reshape(len(x_train),28, 28, 1))[sample_id])
 mutatedResult = originResult
 
 indexNotIn = list(set(index)-set(pixels))
 print(indexNotIn)
 for node_id in indexNotIn:
-        if(node_id>30 and node_id < 755 ):
+        if(node_id>60 and node_id < 720 ):
             newIndex.append(node_id)
             newIndex.append(node_id+1)
             newIndex.append(node_id-1)
@@ -147,18 +152,17 @@ for node_id in indexNotIn:
             newIndex.append(node_id-27)
             newIndex.append(node_id+28)
             newIndex.append(node_id+29)
-            newIndex.append(node_id+27)  
+            newIndex.append(node_id+27) 
+            newIndex.append(node_id+2)
+            newIndex.append(node_id-2)
+            newIndex.append(node_id+56)
+            newIndex.append(node_id-56)
 
-def imgDChange(img, pixels, dec):
-    for pixel in pixels:
-        if img[pixel] > dec:
-            img[pixel] -= dec
-
-while(mutatedResult==originResult and BackgroudFuzz<100):   
+while(mutatedResult==originResult and BackgroudFuzz<180):   
     for node_id in node_index:
         if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):
             # x_train[sample_id, feature[node_id]] = threshold[node_id]+(255-threshold[node_id])*changeRatio
-            if(feature[node_id] > 30 and feature[node_id] < 755 ):
+            if(feature[node_id] > 60 and feature[node_id] < 720 ):
                 newIndex.append(feature[node_id])
                 newIndex.append(feature[node_id]+1)
                 newIndex.append(feature[node_id]-1)
@@ -168,15 +172,19 @@ while(mutatedResult==originResult and BackgroudFuzz<100):
                 newIndex.append(feature[node_id]+28)
                 newIndex.append(feature[node_id]+29)
                 newIndex.append(feature[node_id]+27) 
+                newIndex.append(feature[node_id]+2)
+                newIndex.append(feature[node_id]-2)
+                newIndex.append(feature[node_id]+56)
+                newIndex.append(feature[node_id]-56)
         else:
             imgDChange(x_train[sample_id],
                         [feature[node_id] , feature[node_id]+1, feature[node_id]-1, feature[node_id]+27, feature[node_id]-27, feature[node_id]+28, feature[node_id]-28, feature[node_id]+29, feature[node_id]-29],
-                        BackgroudFuzz)
+                        40)
     imgChange(x_train[sample_id],newIndex,BackgroudFuzz)
-    mutatedResult = np.argmax(model.predict(x_train)[sample_id])        
-    BackgroudFuzz += 10
+    mutatedResult = np.argmax(model.predict(x_train.reshape(len(x_train),28, 28, 1))[sample_id])        
+    BackgroudFuzz += 20
 
-print(model.predict(x_train)[sample_id])
+print(model.predict(x_train.reshape(len(x_train),28, 28, 1))[sample_id])
 print(mutatedResult)
 diff=np.linalg.norm(origin_img/255-x_train[sample_id]/255,ord=2)
 print(diff)
