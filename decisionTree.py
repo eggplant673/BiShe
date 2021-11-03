@@ -31,9 +31,6 @@ def imgDChange(img, pixels, dec):
             img[pixel] -= dec
  
 (x_train,y_train),(x_test,y_test) = load_mnist()
-# print(x_test.shape)
-# plt.imshow(x_test[0])
-# plt.show()
 
 # 训练，预测
 import pickle
@@ -64,7 +61,7 @@ node_indicator = clf.decision_path(x_train)
 leave_id = clf.apply(x_train)
 
 # HERE IS WHAT YOU WANT
-sample_id = 8531
+sample_id = 729
 import copy
 origin_img = copy.deepcopy(x_train[sample_id]) 
 plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
@@ -119,7 +116,8 @@ for node_id in node_index:
     # print(indexfor9)
 
 indexLength = 0
-index = []
+index1 = []
+index2 = []
 times = 0
 count = [0]*784
 # 使用的像素点统计
@@ -127,40 +125,51 @@ sample_ids = [i for i in range(len(x_train)) if clf.predict([x_train[i]])==[y_tr
 for id in sample_ids:
     node_index = node_indicator.indices[node_indicator.indptr[id]:
                                     node_indicator.indptr[id + 1]]
-    for node_id in node_index:             
-        count[feature[node_id]]+=1
+    for node_id in node_index:     
+        if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):        
+            count[feature[node_id]]+=1
+        else:
+            count[feature[node_id]]-=1
 
 # 确定最少需要的像素点
-while indexLength<20:
-    index = [i for i in range(784) if count[i]>=len(sample_ids)*(0.8-0.1*times)]
-    indexLength = len(index)
+while indexLength<30:
+    index1 = [i for i in range(784) if count[i]>=len(sample_ids)*(1.0-0.1*times)]
+    indexLength = len(index1)
     times+=0.5
+index2 = [i for i in range(784) if count[i]<=-len(sample_ids)*(0.2)]
 
-img = [0]*784
-for i in index:
-    img[i]=255
-print(index)
-plt.imshow(np.array(img).reshape(28,28),cmap='gray')
-plt.show()
+print(np.shape(index1))
+print(np.shape(index2))
 
 from keras.models import load_model
 model = load_model('mnist_model2.h5')
-aa=model.predict(x_train.reshape(len(x_train),28, 28, 1))[sample_id]
+aa=model.predict(np.reshape(x_train[sample_id],(1,28,28,1)))
 print(aa)
+print(np.argmax(aa))
+
+def addToIndex(toindex, pixel):
+    toindex.append(pixel)
+    toindex.append(pixel+1)
+    toindex.append(pixel-1)
+    toindex.append(pixel-28)
+    toindex.append(pixel-29)
+    toindex.append(pixel-27)
+    toindex.append(pixel+28)
+    toindex.append(pixel+29)
+    toindex.append(pixel+27) 
 
 # 改变决策分支所依赖的像素点的值
 newIndex = []
 incIndex = []
+incIndex2 = []
 decIndex = []
+decIndex2 = []
 BackgroudFuzz = 10
 originResult = np.argmax(model.predict(x_train.reshape(len(x_train),28, 28, 1))[sample_id])
 mutatedResult = originResult
 
-indexNotIn = list(set(index)-set(pixels))
-decIndex = []
-print(indexNotIn)
 
-def addToIndex(toindex, pixel):
+def addToIndex2(toindex,toindex2, pixel):
     toindex.append(pixel)
     toindex.append(pixel+1)
     toindex.append(pixel-1)
@@ -188,26 +197,62 @@ def addToIndex(toindex, pixel):
     toindex.append(pixel+54)
     toindex.append(pixel+58)
     
-# for pixel in indexNotIn:
-#         if(pixel>60 and pixel < 720 ):
-#             addToIndex(newIndex,pixel)
+for ele in index1:
+    if ele >30 and ele <750:
+        addToIndex(incIndex2,ele)
+for ele in index2:
+    if ele >30 and ele <750:
+        addToIndex(decIndex2,ele)
+
+# imgDChange(x_train[sample_id], list(set(decIndex2)), 40)
+# imgChange(x_train[sample_id],list(set(incIndex2)),40)
+
 for node_id in node_index:
     if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):
         # x_train[sample_id, feature[node_id]] = threshold[node_id]+(255-threshold[node_id])*changeRatio
         if(feature[node_id] > 60 and feature[node_id] < 720 ):
-            addToIndex(newIndex,feature[node_id])
+            addToIndex2(incIndex,incIndex2,feature[node_id])
     else:
         if(feature[node_id] > 60 and feature[node_id] < 720 ):
-            addToIndex(decIndex,feature[node_id]) 
+            addToIndex2(decIndex,decIndex2,feature[node_id]) 
 
-while(mutatedResult==originResult and BackgroudFuzz<100):   
-    imgDChange(x_train[sample_id], list(set(decIndex)), 10)
-    imgChange(x_train[sample_id],list(set(newIndex)),10)
-    mutatedResult = np.argmax(model.predict(x_train.reshape(len(x_train),28, 28, 1))[sample_id])        
-    BackgroudFuzz += 10
+# # 判断改变的像素点是否在决策区域内
+# from imageio import imread
+# import numpy as np 
+# image1 = imread('./seeds_50/729_4.png')
+# image2 = imread('./generated_inputs/0602/729_4_94519091363.png')
 
-print(model.predict(x_train.reshape(len(x_train),28, 28, 1))[sample_id])
+# print(np.linalg.norm(image1/255-image2/255,ord=2))
+# print(model.predict(np.reshape(image2,(1,28,28,1))))
+# allIndex = list(set(incIndex + decIndex+index))
+# excludeIndex = [i for i in range(784) if i not in allIndex]
+
+# diff = image2 - image1
+# plt.imshow(diff,cmap='gray')
+# plt.show()
+
+# diff = np.reshape(diff,784)
+# diff[excludeIndex] = 0
+# diff = np.reshape(diff,(28,28))
+# image2 = image1+diff
+# print(np.linalg.norm(image1/255-image2/255,ord=2))
+# image2 = np.reshape(image2,(1,28,28,1))
+# print(model.predict(image2))
+decIndex = list(set(decIndex)-set(decIndex2))
+decIndex2 = list(set(decIndex2)-set(decIndex))
+incIndex = list(set(incIndex)-set(incIndex2))
+incIndex2 = list(set(incIndex2)-set(incIndex))
+while(mutatedResult==originResult and BackgroudFuzz<150):   
+    imgDChange(x_train[sample_id], decIndex, 5)
+    imgDChange(x_train[sample_id], decIndex2, 2)
+    imgChange(x_train[sample_id], incIndex,5)
+    imgChange(x_train[sample_id], incIndex2,2)
+    mutatedResult = np.argmax(model.predict(np.reshape(x_train[sample_id],(1,28,28,1))))      
+    BackgroudFuzz += 5
+
+print(model.predict(np.reshape(x_train[sample_id],(1,28,28,1))))
 print(mutatedResult)
+print(BackgroudFuzz)
 diff=np.linalg.norm(origin_img/255-x_train[sample_id]/255,ord=2)
 print(diff)
 plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')

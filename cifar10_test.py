@@ -145,20 +145,6 @@ for node_id in node_index:
 imgChange(x_img_train_tree[sample_id],indexUp,0.3)
 imgDChange(x_img_train_tree[sample_id],indexDown,0.3)
 
-# index = list(set(index2)-set(index))
-# for i in index:
-#     changeRatio = 2
-#     if i >33*3 and i<pixelNum-33*3 and i not in Pixels:
-#         x_img_train_tree[sample_id, i] *= changeRatio
-#         x_img_train_tree[sample_id, i-1*3] *= changeRatio
-#         x_img_train_tree[sample_id, i+1*3] *= changeRatio
-#         x_img_train_tree[sample_id, i-32*3] *= changeRatio
-#         x_img_train_tree[sample_id, i-33*3] *= changeRatio
-#         x_img_train_tree[sample_id, i-31*3] *= changeRatio
-#         x_img_train_tree[sample_id, i+32*3] *= changeRatio
-#         x_img_train_tree[sample_id, i+31*3] *= changeRatio
-#         x_img_train_tree[sample_id, i+33*3] *= changeRatio
-
 plt.imshow(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3)[sample_id])
 print(model.predict(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3))[sample_id])
 print(clf.predict(x_img_train_tree)[sample_id])
