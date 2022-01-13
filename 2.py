@@ -34,7 +34,7 @@ for root,dirs,files in os.walk("C:\\Users\Lenovo\Desktop\shiyan\data\imagenet\pr
 
         # for i in range(512):
         #     conv_layer_output_value[:, :, i] *= pooled_grads_value[i]  # 将特征图数组的每个通道乘以这个通道对大象类别重要程度
-
+        print(pooled_grads_value)
         size = 224
         margin = 5
 
