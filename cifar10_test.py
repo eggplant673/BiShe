@@ -34,7 +34,7 @@ leave_id = clf.apply(x_img_train_tree)
 # a group of samples. First, let's make it for the sample.
 
 # HERE IS WHAT YOU WANT
-sample_id = 9
+sample_id = 12
 plt.imshow(x_img_train[sample_id])
 plt.show()
 # plt.imshow(x_img_train[sample_id])
@@ -80,26 +80,18 @@ for id in sample_ids:
     node_index = node_indicator.indices[node_indicator.indptr[id]:
                                     node_indicator.indptr[id + 1]]
     for node_id in node_index:             
-        count[feature[node_id]]+=1
-index = [i for i in range(pixelNum) if count[i]>=len(sample_ids)*0.1]
-img = [0]*pixelNum 
-for i in index:
-    img[i]=255
-print(index)
+        if (x_img_train_tree[sample_id, feature[node_id]] <= threshold[node_id]):        
+            count[feature[node_id]]+=1
+        else:
+            count[feature[node_id]]-=1
+index1 = np.argsort(count)[-1:-13:-1]
+index2 = np.argsort(count)[1:13:1]
+# img = [0]*pixelNum 
+# for i in index1:
+#     img[i]=255
+# print(index)
 # plt.imshow(np.array(img).reshape(32,32,3))
 # plt.show()
-
-attack_sample_ids = [i for i in range(len(x_img_train_tree)) if  np.argmax(modelResult[i]) == 7]
-print(len(attack_sample_ids))
-pixelNum = 32*32*3
-count = [0]*pixelNum 
-for id in attack_sample_ids:
-    node_index = node_indicator.indices[node_indicator.indptr[id]:
-                                    node_indicator.indptr[id + 1]]
-    for node_id in node_index:             
-        count[feature[node_id]]+=1
-index2 = [i for i in range(pixelNum) if count[i]>=len(attack_sample_ids)*0.10]
-print(set(index2)-set(index))
 
 
 def imgChange(img, pixels, changeTo):
@@ -126,6 +118,12 @@ def addToIndex(index, pixel):
 Pixels = []
 indexUp = []
 indexDown = []
+# for ele in index1:
+#         if ele >33*3 and ele <pixelNum-33*3:
+#             addToIndex(indexUp,ele)
+# for ele in index2:
+#         if ele >33*3 and ele <pixelNum-33*3:
+#             addToIndex(indexUp,ele)        
 #决策单个图片依赖的像素点
 for node_id in node_index:
     Pixels.append(feature[node_id])
@@ -141,9 +139,8 @@ for node_id in node_index:
 # for pixel in indexNotIn:
 #     if(pixel>33*3 and node_id < 32*32*3 -33*3 ):
 #         addToIndex(indexUp,pixel)
- 
 imgChange(x_img_train_tree[sample_id],indexUp,0.3)
-imgDChange(x_img_train_tree[sample_id],indexDown,0.3)
+# imgDChange(x_img_train_tree[sample_id],indexDown,0.3)
 
 plt.imshow(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3)[sample_id])
 print(model.predict(np.array(x_img_train_tree).reshape(len(x_img_train),32,32,3))[sample_id])

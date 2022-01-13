@@ -159,7 +159,7 @@ node_indicator = clf.decision_path(x_train)
 leave_id = clf.apply(x_train)
 
 # HERE IS WHAT YOU WANT
-sample_id = 729
+sample_id = 1657
 # plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
 # plt.show()
 # plt.imshow(x_train[2].reshape(28,28))
@@ -219,7 +219,7 @@ print(aa)
 print(np.argmax(aa))
 
 # 改变决策分支所依赖的像素点的值
-originResult = np.argmax(model.predict(x_train.reshape(len(x_train),28, 28, 1))[sample_id])
+originResult = np.argmax(model.predict(np.reshape(x_train[sample_id],(1,28,28,1))))
 mutatedResult = originResult
 
 # 
@@ -410,7 +410,7 @@ plt.show()
 def get_bin_img(img_index):
     img = np.zeros((28,28))
     for i in img_index:
-        img[int(i/28),i%28] = 50
+        img[int(i/28),i%28] = 100
     return img
 
 def imgs_minus(img1, img2):
@@ -420,25 +420,43 @@ def imgs_minus(img1, img2):
         else:
             img1[i] = 0
 
+# if suitablenums < 15:
+#     imgdiff = copy.deepcopy(nowImg)
+#     imgs_minus(imgdiff,origin_img)
+#     tmp = np.reshape(imgdiff,(28,28))
+#     erode_img(tmp,2)
+#     imgdiff  = np.reshape(tmp, 28*28)
+#     nowImg = copy.deepcopy(origin_img)
+#     imgs_add(nowImg, imgdiff)
+#     plt.imshow(nowImg.reshape(28,28),cmap='gray')
+#     plt.show()
+
 # 求出重要性分布图
+print(list(set(all_pixels)))
 salience = {}
-for p in all_pixels:
-    pIndex = []
-    addToIndex(pIndex, p)
-    img = get_bin_img(pIndex)
-    img_flat = np.reshape(img,784)
-    changed_img = copy.deepcopy(nowImg)
-    imgs_minus(changed_img,img_flat)
-    nowP = model.predict(np.reshape(changed_img,(1,28,28,1)))[0][originResult]
-    salience[p] = nowP - baseP
-    
+for p in list(set(all_pixels)):
+    if p> 30 and p < 750:
+        pIndex = []
+        addToIndex(pIndex,p)
+        img = get_bin_img(pIndex)
+        img_flat = np.reshape(img,784)
+        changed_img = copy.deepcopy(nowImg)
+        imgs_minus(changed_img,img_flat)
+        nowP = model.predict(np.reshape(changed_img,(1,28,28,1)))[0][originResult]
+        salience[p] = nowP - baseP
+print(salience)   
+
 sorted_salience = sorted(salience.items(), key = lambda kv:(kv[1], kv[0]))
 delete_index = []
-print(sorted_salience)
+print(sorted_salience)   
 for pair in sorted_salience:
-    if pair[1]< 0:
-        addToIndex(delete_index, pair[0])
-     
+    if pair[1]< 0.1:
+        addToIndex(delete_index,pair[0])
+        all_pixels.remove(pair[0])
+
+print(list(set(all_pixels)))
+
+
 img = get_bin_img(list(set(delete_index)))
 img_flat = np.reshape(img,784)
 
@@ -452,17 +470,9 @@ plt.imshow(changed_img.reshape(28,28),cmap='gray')
 plt.show()
 # np.argsort(salience)
 
-# # 对扰动进行腐蚀操作
+# 背景幅度调整
 imgdiff =  changed_img 
 imgs_minus(imgdiff,origin_img)
-# tmp = np.reshape(imgdiff,(28,28))
-
-
-# erode_img(tmp,2)
-
-# imgdiff  = np.reshape(tmp, 28*28)
-# plt.imshow(imgdiff.reshape(28,28),cmap='gray')
-# plt.show()
 change_degree = 0.5
 x_train[sample_id] = copy.deepcopy(origin_img)
 imgs_add(x_train[sample_id], imgdiff*change_degree)

@@ -14,25 +14,23 @@ def load_data():
   x_test = x_test.reshape(len(x_test),28 ,28, 1)
   y_train = np_utils.to_categorical(y_train, 10)
   y_test = np_utils.to_categorical(y_test, 10)
-
-  # x_train = x_train / 255
-  # x_test = x_test / 255
-
   return (x_train, y_train), (x_test, y_test)
 
 if __name__ == '__main__':
   (x_train, y_train), (x_test, y_test) = load_data() 
   model = Sequential()
-#step1：卷积层1 和 池化层1
+  #step1：卷积层1 和 池化层1
   model.add(Conv2D(filters=28,kernel_size=(5,5),
                   input_shape=(28, 28, 1), 
                   activation='relu', 
-                  padding='same'))
+                  padding='same',
+                  name = 'cov1'))
 
   model.add(MaxPooling2D(pool_size=(2, 2))) # 16* 16
   #step2：卷积层2 和 池化层2
   model.add(Conv2D(filters=12, kernel_size=(5, 5), 
-                  activation='relu', padding='same'))
+                  activation='relu', padding='same',
+                  name = 'cov2'))
 
   model.add(MaxPooling2D(pool_size=(2, 2))) # 8 * 8
   #Step3	建立神经网络(展开层、隐藏层、输出层)

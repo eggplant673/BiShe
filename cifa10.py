@@ -25,12 +25,12 @@ model = Sequential()
 model.add(Conv2D(filters=32,kernel_size=(3,3),
                  input_shape=(32, 32,3), 
                  activation='relu', 
-                 padding='same'))
+                 padding='same', name = 'cov1'))
 model.add(Dropout(rate=0.25))
 model.add(MaxPooling2D(pool_size=(2, 2))) # 16* 16
 #step2：卷积层2 和 池化层2
 model.add(Conv2D(filters=64, kernel_size=(3, 3), 
-                 activation='relu', padding='same'))
+                 activation='relu', padding='same',name = 'cov2'))
 model.add(Dropout(0.25))
 model.add(MaxPooling2D(pool_size=(2, 2))) # 8 * 8
 #Step3	建立神经网络(展开层、隐藏层、输出层)
@@ -46,5 +46,5 @@ train_history=model.fit(x_img_train_normalize, y_label_train_OneHot,
                         validation_split=0.2,
                         epochs=10, batch_size=128, verbose=1)   
 print(model.predict(x_img_train)[9])
-# model.save('cifar_10_model.h5') 
+model.save('cifar_10_model.h5') 
 
