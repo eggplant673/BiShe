@@ -1,491 +1,165 @@
-from os import times
-from typing import List, Set
-from keras.layers import serialization
-import numpy as np
-import matplotlib.pyplot as plt
-from numpy.core.defchararray import center
-from numpy.core.fromnumeric import shape, sort
-from numpy.lib.function_base import delete
-from sklearn.model_selection import train_test_split
-from sklearn import tree
-import joblib
+import math
 
-from sklearn.datasets import load_iris
-from sklearn.tree import DecisionTreeClassifier, plot_tree
 
-def load_mnist():
-    
-    path = r'D:\BaiduNetdiskDownload\mnist.npz' #放置mnist.py的目录。注意斜杠
-    f = np.load(path)
-    x_train, y_train = f['x_train'], f['y_train']
-    x_test, y_test = f['x_test'], f['y_test']
-    f.close()
-    return (x_train, y_train), (x_test, y_test)
-def imgs_plus(img1, img2):
-    for i in range(len(img1)):
-        if img1[i]+img2[i]<=255 and img1[i]+img2[i]>=0:
-            img1[i] = img1[i] + img2[i]
-        elif img1[i]+img2[i]<0:
-            img1[i] = 0
+# find item in a list
+def find(item, l):
+    for i in l:
+        if item(i):
+            return True
         else:
-            img1[i] = 255
-        
-def imgChange(img, pixels, inc):      
-    for pixel in pixels:
-        if img[pixel] < 255-inc:
-            img[pixel] += inc
+            return False
 
-def imgDChange(img, pixels, dec):
-    for pixel in pixels:
-        if img[pixel] > dec:
-            img[pixel] -= dec
 
-def dilate_img(img, kernel_size):
-    img_size = img.shape[0]
-    import copy
-    copy_img = copy.deepcopy(img)
-    center_move = int(kernel_size/2)
-    for i in range(int(kernel_size/2),img_size - int(kernel_size/2)):
-        for j in range(int(kernel_size/2),img_size - int(kernel_size/2)):
-            img[i, j] = np.max(copy_img[i - center_move:i+center_move, j -center_move:j+center_move])
-
-def erode_img(img, kernel_size):
-    img_size = img.shape[0]
-    import copy
-    copy_img = copy.deepcopy(img)
-    center_move = int(kernel_size/2)
-    for i in range(img.shape[0]):
-        for j in range(img.shape[1]):
-            img[i,j] = 0
-    for i in range(int(kernel_size/2),img_size - int(kernel_size/2)):
-        for j in range(int(kernel_size/2),img_size - int(kernel_size/2)):
-            img[i, j] = np.min(copy_img[i - center_move:i+center_move, j -center_move:j+center_move])
-
-def vague_img(img, kernel_size):
-    img_size = img.shape[0]
-    import copy
-    copy_img = copy.deepcopy(img)
-    center_move = int(kernel_size/2)
-    for i in range(int(kernel_size/2),img_size - int(kernel_size/2)):
-        for j in range(int(kernel_size/2),img_size - int(kernel_size/2)):
-            img[i, j] = np.mean(copy_img[i - center_move:i+center_move, j -center_move:j+center_move])
-
-def index_process(do_index):
-    re_index = []
-    tmp = [0]*784
-    for i in range(784):
-        if i in do_index:
-            tmp[i] = 1
-    img_tmp = np.reshape(tmp,(28,28))
-    erode_img(img_tmp,2)
-    tmp = np.reshape(img_tmp,784)
-    re_index = [i for i in range(784) if tmp[i]==1]    
-    return re_index
-
-def addToIndex2(toindex, toindex2, pixel):
-    toindex.append(pixel)
-    toindex.append(pixel+1)
-    toindex.append(pixel-1)
-    toindex.append(pixel-28)
-    toindex.append(pixel-29)
-    toindex.append(pixel-27)
-    toindex.append(pixel+28)
-    toindex.append(pixel+29)
-    toindex.append(pixel+27) 
-    # 周围两格内
-    toindex.append(pixel+56)
-    toindex.append(pixel+55)
-    toindex.append(pixel+57)
-    toindex.append(pixel-56)
-    toindex.append(pixel-55)
-    toindex.append(pixel-57)
-    toindex.append(pixel+2)
-    toindex.append(pixel-2)
-    toindex.append(pixel-58)
-    toindex.append(pixel-54)
-    toindex.append(pixel-30)
-    toindex.append(pixel-26)
-    toindex.append(pixel+26)
-    toindex.append(pixel+30)
-    toindex.append(pixel+54)
-    toindex.append(pixel+58)
-
-def addToIndex(toindex, pixel):
-    toindex.append(pixel)
-    toindex.append(pixel+1)
-    toindex.append(pixel-1)
-    toindex.append(pixel-28)
-    toindex.append(pixel-29)
-    toindex.append(pixel-27)
-    toindex.append(pixel+28)
-    toindex.append(pixel+29)
-    toindex.append(pixel+27) 
-
-def imgs_add(img1, img2):
-    for i in range(len(img1)):
-        if img1[i]+img2[i]<=255:
-            img1[i] += img2[i]
+# find most common value for an attribute
+def majority(attributes, data, target):
+    # find target attribute
+    val_freq = {}
+    # find target in data
+    index = attributes.index(target)
+    # calculate frequency of values in target attr
+    for tuple in data:
+        if tuple[index] in val_freq:
+            val_freq[tuple[index]] += 1
         else:
-            img1[i] = 255
-
-(x_train,y_train),(x_test,y_test) = load_mnist()
-
-# 训练，预测
-import pickle
-clf = joblib.load('mnist2.pkl')
-
-x_train = x_train.reshape((60000,784))
-x_test = x_test.reshape((10000,784))
+            val_freq[tuple[index]] = 1
+    max = 0
+    major = ""
+    for key in val_freq.keys():
+        if val_freq[key] > max:
+            max = val_freq[key]
+            major = key
+    return major
 
 
-# from keras.models import load_model
-# model = load_model('my_model.h5')
-# clf=DecisionTreeClassifier()
-# clf.fit(x_train,np.argmax(model.predict(x_train),axis=1))
-# print(clf.score(x_train,y_train))
-# print(clf.score(x_test,y_test))
+# Calculates the entropy of the given data set for the target attr
+def entropy(attributes, data, target_attr):
+    val_freq = {}
+    dataEntropy = 0.0
 
-n_nodes = clf.tree_.node_count
-children_left = clf.tree_.children_left
-children_right = clf.tree_.children_right
-feature = clf.tree_.feature
-threshold = clf.tree_.threshold
+    # find index of the target attribute
+    i = 0
+    for entry in attributes:
+        if target_attr == entry:
+            break
+        i += 1
 
-
-node_indicator = clf.decision_path(x_train)
-
-# Similarly, we can also have the leaves ids reached by each sample.
-
-leave_id = clf.apply(x_train)
-
-# HERE IS WHAT YOU WANT
-sample_id = 1657
-# plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
-# plt.show()
-# plt.imshow(x_train[2].reshape(28,28))
-# plt.show()
-
-node_index = node_indicator.indices[node_indicator.indptr[sample_id]:
-                                    node_indicator.indptr[sample_id + 1]]
-
-
-print('Rules used to predict sample %s: %s' % (sample_id,y_train[sample_id]))
-pixels = []
-for node_id in node_index:
-
-    if leave_id[sample_id] == node_id:  # <-- changed != to ==
-        #continue # <-- comment out
-        print("leaf node {} reached, no decision here".format(leave_id[sample_id])) # <--
-
-    else: # < -- added else to iterate through decision nodes
-        if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):
-            threshold_sign = "<="
+    # Calculate the frequency of each of the values in the target attr
+    for entry in data:
+        if entry[i] in val_freq:
+            val_freq[entry[i]] += 1.0
         else:
-            threshold_sign = ">"
+            val_freq[entry[i]] = 1.0
 
-        print("decision id node %s : (X[%s, %s] (= %s) %s %s)"
-              % (node_id,
-                 sample_id,
-                 feature[node_id],
-                 x_train[sample_id, feature[node_id]], # <-- changed i to sample_id
-                 threshold_sign,
-                 threshold[node_id]))
-        pixels.append(feature[node_id])
-# joblib.dump(clf,'mnist2.pkl')
-# joblib.dump(clf,'mnist.pkl')
+    # Calculate the entropy of the data for the target attr
+    for freq in val_freq.values():
+        dataEntropy += (-freq / len(data)) * math.log(freq / len(data), 2)
 
-indexLength = 0
-index1 = []
-index2 = []
-times = 0
-count = [0]*784
+    return dataEntropy
 
-# 使用的像素点统计
-sample_ids = [i for i in range(len(x_train)) if clf.predict([x_train[i]])==[y_train[sample_id]]]
-for id in sample_ids:
-    node_index = node_indicator.indices[node_indicator.indptr[id]:
-                                    node_indicator.indptr[id + 1]]
-    for node_id in node_index:     
-        if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):        
-            count[feature[node_id]]+=1
+
+def gain(attributes, data, attr, target_attr):
+    """
+    Calculates the information gain (reduction in entropy) that would
+    result by splitting the data on the chosen attribute (attr).
+    """
+    val_freq = {}
+    subset_entropy = 0.0
+
+    # find index of the attribute
+    i = attributes.index(attr)
+
+    # Calculate the frequency of each of the values in the target attribute
+    for entry in data:
+        if entry[i] in val_freq:
+            val_freq[entry[i]] += 1.0
         else:
-            count[feature[node_id]]-=1
+            val_freq[entry[i]] = 1.0
+    # Calculate the sum of the entropy for each subset of records weighted
+    # by their probability of occuring in the training set.
+    for val in val_freq.keys():
+        valProb = val_freq[val] / sum(val_freq.values())
+        dataSubset = [entry for entry in data if entry[i] == val]
+        subset_entropy += valProb * entropy(attributes, dataSubset, target_attr)
+
+    # Subtract the entropy of the chosen attribute from the entropy of the
+    # whole data set with respect to the target attribute (and return it)
+    return entropy(attributes, data, target_attr) - subset_entropy
 
 
-from keras.models import load_model
-model = load_model('mnist_model2.h5')
-aa=model.predict(np.reshape(x_train[sample_id],(1,28,28,1)))
-print(aa)
-print(np.argmax(aa))
-
-# 改变决策分支所依赖的像素点的值
-originResult = np.argmax(model.predict(np.reshape(x_train[sample_id],(1,28,28,1))))
-mutatedResult = originResult
-
-# 
-# 
-# 
-# 
-# 
-# 确定需要的额外的像素点的数量
-import copy
-origin_img = copy.deepcopy(x_train[sample_id]) 
-mindiff = 10
-nowdiff = 10
-nums = 5
-suitablenums = -1
-while nums <40 :
-    x_train[sample_id] = copy.deepcopy(origin_img)
-    # 确定最少需要的像素点
-    incIndex = []
-    incIndex2 = []
-    decIndex = []
-    index1 = np.argsort(count)[-1:-nums:-1]
-    index2 = np.argsort(count)[0:5:1]
-
-    for node_id in node_index:
-        if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):
-            # x_train[sample_id, feature[node_id]] = threshold[node_id]+(255-threshold[node_id])*changeRatio
-            if(feature[node_id] > 60 and feature[node_id] < 720):
-                addToIndex2(incIndex, incIndex2, feature[node_id])
-                
-        else:
-            if(feature[node_id] > 60 and feature[node_id] < 720 ):
-                addToIndex2(decIndex, decIndex, feature[node_id]) 
-
-    for ele in index1:
-        if ele >30 and ele <750:
-            addToIndex(incIndex2,ele)
-
-    decIndex = list(set(decIndex)-set(incIndex)-set(incIndex2))
-    incIndex2 = list(set(incIndex2)-set(incIndex)-set(decIndex))
-    incIndex = list(set(incIndex)-set(incIndex2)-set(decIndex))
-    decIndex = list(set(decIndex)-set(incIndex))
-    
-    # incIndex=index_process(incIndex)
-    # incIndex2=index_process(incIndex2)
-    BackgroudFuzz = 10
-    mutatedResult = originResult
-    while(mutatedResult==originResult and BackgroudFuzz<180):   
-        imgChange(x_train[sample_id], incIndex, 5)
-        imgChange(x_train[sample_id], incIndex2, 5)
-        mutatedResult = np.argmax(model.predict(np.reshape(x_train[sample_id],(1,28,28,1))))      
-        BackgroudFuzz += 5
-
-    # node_indicator = clf.decision_path(x_train)
-    # node_index = node_indicator.indices[node_indicator.indptr[sample_id]:
-    #                                     node_indicator.indptr[sample_id + 1]]
-
-    nowdiff=np.linalg.norm(origin_img/255-x_train[sample_id]/255,ord=2)
-    if mindiff > nowdiff and mutatedResult!=originResult:
-        mindiff = nowdiff
-        suitablenums =nums
-    nums+=2
+# choose best attibute
+# dont choose target attribute
+def choose_attr(data, attributes, target):
+    best = attributes[0]
+    max_gain = 0
+    for attr in attributes:
+        if attr != target:
+            newGain = gain(attributes, data, attr, target)
+            if newGain > max_gain:
+                max_gain = newGain
+                best = attr
+    return best
 
 
-print(mutatedResult!=originResult)
-print(suitablenums)
-print(mindiff)
+# get values in the column of the given attribute
+def getValues(data, attributes, attr):
+    index = attributes.index(attr)
+    values = []
+    for entry in data:
+        if entry[index] not in values:
+            values.append(entry[index])
+    return values
 
 
-# 
-# 
-# 
-# 
-# 
-# 确定index2合适的权重
-x_train[sample_id] = copy.deepcopy(origin_img)
-# 确定最少需要的像素点
-incIndex = []
-incIndex2 = []
-decIndex = []
-index1 = np.argsort(count)[-1:-(suitablenums):-1]
-index2 = np.argsort(count)[0:5:1]
+def get_samples(data, attributes, best, val):
+    examples = [[]]
+    index = attributes.index(best)
+    for entry in data:
+        # find entries with the give value
+        if entry[index] == val:
+            new_entry = []
+            # add value if it is not in best column
+            for i in range(0, len(entry)):
+                if i != index:
+                    new_entry.append(entry[i])
+            examples.append(new_entry)
+    examples.remove([])
+    return examples
 
-for node_id in node_index:
-    if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):
-        # x_train[sample_id, feature[node_id]] = threshold[node_id]+(255-threshold[node_id])*changeRatio
-        if(feature[node_id] > 60 and feature[node_id] < 720):
-            addToIndex2(incIndex, incIndex2, feature[node_id])
-            
+
+def make_tree(data, attributes, target, recursion):
+    recursion += 1
+    # Returns a new decision tree based on the examples given.
+    data = data[:]
+    vals = [record[attributes.index(target)] for record in data]
+    default = majority(attributes, data, target)
+
+    # If the dataset is empty or the attributes list is empty, return the
+    # default value. When checking the attributes list for emptiness, we
+    # need to subtract 1 to account for the target attribute.
+    if not data or (len(attributes) - 1) <= 0:
+        return default
+    # If all the records in the dataset have the same classification,
+    # return that classification.
+    elif vals.count(vals[0]) == len(vals):
+        return vals[0]
     else:
-        if(feature[node_id] > 60 and feature[node_id] < 720 ):
-            addToIndex2(decIndex, decIndex, feature[node_id]) 
+        # Choose the next best attribute to best classify our data
+        best = choose_attr(data, attributes, target)
+        # Create a new decision tree/node with the best attribute and an empty
+        # dictionary object--we'll fill that up next.
+        tree = {best: {}}
 
-for ele in index1:
-    if ele >30 and ele <750:
-        addToIndex(incIndex2,ele)
+        # Create a new decision tree/sub-node for each of the values in the
+        # best attribute field
+        for val in getValues(data, attributes, best):
+            # Create a subtree for the current value under the "best" field
+            examples = get_samples(data, attributes, best, val)
+            new_attr = attributes[:]
+            new_attr.remove(best)
+            subtree = make_tree(examples, new_attr, target, recursion)
 
-decIndex = list(set(decIndex)-set(incIndex)-set(incIndex2))
-incIndex2 = list(set(incIndex2)-set(incIndex)-set(decIndex))
-incIndex = list(set(incIndex)-set(incIndex2)-set(decIndex))
-decIndex = list(set(decIndex)-set(incIndex))
-# incIndex=index_process(incIndex)
-# incIndex2=index_process(incIndex2)
-nowdiff = 10
-mindiff = 10
-weightfor2 = 0
-suitableweightfor2 = 1
-while weightfor2 < 10:
-    x_train[sample_id] = copy.deepcopy(origin_img)
-    BackgroudFuzz = 0
-    mutatedResult = originResult
-    while(mutatedResult==originResult and BackgroudFuzz<180):   
-        imgChange(x_train[sample_id], incIndex, 5)
-        imgChange(x_train[sample_id], incIndex2, weightfor2)
-        mutatedResult = np.argmax(model.predict(np.reshape(x_train[sample_id],(1,28,28,1))))      
-        BackgroudFuzz += 5
+            # Add the new subtree to the empty dictionary object in our new
+            # tree/node we just created.
+            tree[best][val] = subtree
 
-    # node_indicator = clf.decision_path(x_train)
-    # node_index = node_indicator.indices[node_indicator.indptr[sample_id]:
-    #                                     node_indicator.indptr[sample_id + 1]]
-
-    nowdiff=np.linalg.norm(origin_img/255-x_train[sample_id]/255,ord=2)
-    if nowdiff < mindiff and mutatedResult!=originResult:
-        mindiff = nowdiff
-        suitableweightfor2 =weightfor2
-    weightfor2 += 1
-
-print(suitableweightfor2)
-print(mindiff)
-
-
-x_train[sample_id] = copy.deepcopy(origin_img)
-all_pixels = []
-# 确定最少需要的混淆程度
-incIndex = []
-incIndex2 = []
-decIndex = []
-
-index1 = np.argsort(count)[-1:-(suitablenums):-1]
-index2 = np.argsort(count)[0:5:1]
-
-for node_id in node_index:
-    if (x_train[sample_id, feature[node_id]] <= threshold[node_id]):
-        # x_train[sample_id, feature[node_id]] = threshold[node_id]+(255-threshold[node_id])*changeRatio
-        if(feature[node_id] > 60 and feature[node_id] < 720):
-            addToIndex2(incIndex, incIndex2, feature[node_id])
-            all_pixels.append(feature[node_id])
-            
-    else:
-        if(feature[node_id] > 60 and feature[node_id] < 720 ):
-            addToIndex2(decIndex, decIndex, feature[node_id]) 
-
-for ele in index1:
-    if ele >30 and ele <750:
-        addToIndex(incIndex2,ele)
-        all_pixels.append(ele)
-
-
-decIndex = list(set(decIndex)-set(incIndex)-set(incIndex2))
-incIndex2 = list(set(incIndex2)-set(incIndex)-set(decIndex))
-incIndex = list(set(incIndex)-set(incIndex2)-set(decIndex))
-
-decIndex = list(set(decIndex)-set(incIndex))
-# incIndex=index_process(incIndex)
-# incIndex2=index_process(incIndex2)
-
-x_train[sample_id] = copy.deepcopy(origin_img)
-BackgroudFuzz = 0
-mutatedResult = originResult
-while(mutatedResult==originResult and BackgroudFuzz<180):   
-    imgChange(x_train[sample_id], incIndex, 5)
-    imgChange(x_train[sample_id], incIndex2, suitableweightfor2)
-    mutatedResult = np.argmax(model.predict(np.reshape(x_train[sample_id],(1,28,28,1))))      
-    BackgroudFuzz += 5
-
-# node_indicator = clf.decision_path(x_train)
-# node_index = node_indicator.indices[node_indicator.indptr[sample_id]:
-#                                     node_indicator.indptr[sample_id + 1]]
-
-nowdiff=np.linalg.norm(origin_img/255-x_train[sample_id]/255,ord=2)
-print(nowdiff)
-print(model.predict(np.reshape(x_train[sample_id],(1,28,28,1)))) 
-re = np.argmax(model.predict(np.reshape(x_train[sample_id],(1,28,28,1))))
-baseP = model.predict(np.reshape(x_train[sample_id],(1,28,28,1)))[0][originResult]
-nowImg = x_train[sample_id]
-plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
-plt.show()
-
-def get_bin_img(img_index):
-    img = np.zeros((28,28))
-    for i in img_index:
-        img[int(i/28),i%28] = 100
-    return img
-
-def imgs_minus(img1, img2):
-    for i in range(len(img1)):
-        if img1[i]>img2[i]:
-            img1[i] = img1[i]-img2[i]
-        else:
-            img1[i] = 0
-
-# if suitablenums < 15:
-#     imgdiff = copy.deepcopy(nowImg)
-#     imgs_minus(imgdiff,origin_img)
-#     tmp = np.reshape(imgdiff,(28,28))
-#     erode_img(tmp,2)
-#     imgdiff  = np.reshape(tmp, 28*28)
-#     nowImg = copy.deepcopy(origin_img)
-#     imgs_add(nowImg, imgdiff)
-#     plt.imshow(nowImg.reshape(28,28),cmap='gray')
-#     plt.show()
-
-# 求出重要性分布图
-print(list(set(all_pixels)))
-salience = {}
-for p in list(set(all_pixels)):
-    if p> 30 and p < 750:
-        pIndex = []
-        addToIndex(pIndex,p)
-        img = get_bin_img(pIndex)
-        img_flat = np.reshape(img,784)
-        changed_img = copy.deepcopy(nowImg)
-        imgs_minus(changed_img,img_flat)
-        nowP = model.predict(np.reshape(changed_img,(1,28,28,1)))[0][originResult]
-        salience[p] = nowP - baseP
-print(salience)   
-
-sorted_salience = sorted(salience.items(), key = lambda kv:(kv[1], kv[0]))
-delete_index = []
-print(sorted_salience)   
-for pair in sorted_salience:
-    if pair[1]< 0.1:
-        addToIndex(delete_index,pair[0])
-        all_pixels.remove(pair[0])
-
-print(list(set(all_pixels)))
-
-
-img = get_bin_img(list(set(delete_index)))
-img_flat = np.reshape(img,784)
-
-changed_img = copy.deepcopy(nowImg)
-
-imgs_minus(changed_img,img_flat)
-print(model.predict(np.reshape(changed_img,(1,28,28,1))))  
-nowdiff=np.linalg.norm(origin_img/255-changed_img/255,ord=2)
-print(nowdiff)   
-plt.imshow(changed_img.reshape(28,28),cmap='gray')
-plt.show()
-# np.argsort(salience)
-
-# 背景幅度调整
-imgdiff =  changed_img 
-imgs_minus(imgdiff,origin_img)
-change_degree = 0.5
-x_train[sample_id] = copy.deepcopy(origin_img)
-imgs_add(x_train[sample_id], imgdiff*change_degree)
-now_result = np.argmax(model.predict(np.reshape(x_train[sample_id],(1,28,28,1))))
-while(now_result == originResult and change_degree<2):
-    change_degree+=0.05
-    x_train[sample_id] = copy.deepcopy(origin_img)
-    imgs_add(x_train[sample_id], imgdiff*change_degree)
-    now_result = np.argmax(model.predict(np.reshape(x_train[sample_id],(1,28,28,1))))
-    nowdiff=np.linalg.norm(origin_img/255-x_train[sample_id]/255,ord=2)
-    print(nowdiff)
-nowdiff=np.linalg.norm(origin_img/255-x_train[sample_id]/255,ord=2)
-print(nowdiff)   
-plt.imshow(x_train[sample_id].reshape(28,28),cmap='gray')
-plt.show()
-print(model.predict(np.reshape(x_train[sample_id],(1,28,28,1)))) 
+    return tree

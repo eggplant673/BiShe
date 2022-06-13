@@ -66,26 +66,38 @@ def path_convert(path):
     path = ','.join(collect)
     return path
 
-def path_selection(model, path, feature, img):
+def path_selection(model, path, feature, flag):
+    #目标路径选择，这里只是简单的选择最相邻的路径
     next_path = get_next_per(path_convert(path))
     node_index1 = path
     node_index2 = [ int(x) for x in next_path.split(",")]
-    pos = set(node_index2) - set(node_index1)
+    # pos = set(node_index2) - set(node_index1)
     neg = set(node_index1) - set(node_index2)
-    neurous_pos = [ feature[node] for node in pos]
+    # neurous_pos = [ feature[node] for node in pos]
     neurous_neg = [ feature[node] for node in neg]
-    get_3rd_layer_output = K.function(model.input,
-                                  model.layers[3].output)
     total_loss = []
-    for index in neurous_pos:
-        grads = get_3rd_layer_output(img)
-        grads = np.mean(grads,axis=(1, 2))
-        total_loss.append(grads[0][index])
+    # for index in neurous_pos[0:6]:
+    #     total_loss.append(K.mean(model.layers[3].output[...,index]))
+    for index in neurous_neg[0:3]:
+        total_loss.append(-0.5*K.mean(model.layers[3].output[...,index]))
 
-    # for index in neurous_neg:
-    #     grads = get_3rd_layer_output(img)
-    #     grads = np.mean(grads,axis=(1, 2))
-    #     grads = K.gradients(grads[0][index], model.input)[0]
-    #     total_loss.append(-0.2*grads)
+    for i in range(len(path)-1):
+        node = path[i]
+        next_node = path[i+1]
+        index = feature[next_node]
+        if node in path and node not in node_index2 and next_node not in node_index2:
+            if flag[i]<0:
+                total_loss.append(K.mean(model.layers[3].output[...,index]))
+            else:
+                total_loss.append(-0.6*K.mean(model.layers[3].output[...,index]))
+    # total_loss = []
+    # for index in path[:3]:
+    #     total_loss.append(K.mean(model.layers[3].output[...,feature[index]]))
+    # # for index in neurous_neg:
+    # #     grads = get_3rd_layer_output(img)
+    # #     grads = np.mean(grads,axis=(1, 2))
+    # #     grads = K.gradients(grads[0][index], model.input)[0]
+    # #     total_loss.append(-0.2*grads)
+    print(np.shape(total_loss))
     return total_loss
     

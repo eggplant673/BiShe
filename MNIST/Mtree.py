@@ -1,3 +1,5 @@
+import math
+from multiprocessing.sharedctypes import Value
 from matplotlib.image import imsave
 import numpy as np
 from keras.datasets import mnist
@@ -68,6 +70,12 @@ threshold = clf.tree_.threshold
 
 node_indicator = clf.decision_path(layer_output)
 
+def get_path_value(img, path):
+    layout = get_3rd_layer_output([img])[0]
+    value = [np.mean(layout,axis=(1,2))[0][feature[x]] for x in path]
+    t = [threshold[x] for x in path]
+    return [ value[x] - t[x] for x in range(len(value))]
+
 def get_path(sam):
     # sam = np.expand_dims(sam,axis=0)
     model_3_layer_out = get_3rd_layer_output([sam])[0]
@@ -75,6 +83,16 @@ def get_path(sam):
     path = clf.decision_path(model_3_layer_out)[0]
     path = path.indices[path.indptr[0]:path.indptr[1]]
     return path
+
+def get_robust(img, path, threshold):
+    model_3_layer_out = get_3rd_layer_output([img])[0]
+    model_3_layer_out = np.mean(model_3_layer_out,axis=(1, 2))
+    min = 100
+    for i in range(len(path)):
+        value = model_3_layer_out[0][feature[path[i]]]
+        t = threshold[path[i]]
+        min = np.min([min, (t-value)*(t-value)])
+    return min
 
 def init_allpaths(layer_output, node_indicator):
     for i in range(len(layer_output)):
@@ -111,7 +129,7 @@ input_shape = (img_rows, img_cols, 1)
 # define input tensor as a placeholder
 input_tensor = Input(shape=input_shape)
 
-predict_weight = 0.5
+predict_weight = 0.6
 
 learning_step = 0.02
 
@@ -121,7 +139,9 @@ total_perturb_adversial = 0
 
 adversial_num = 0
 
-save_dir = './generated_inputs/new/' 
+save_dir = './generated_inputs/new_change2/' 
+
+ratio = []
 
 if os.path.exists(save_dir):
     for i in os.listdir(save_dir):
@@ -131,6 +151,9 @@ if os.path.exists(save_dir):
 
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
+
+import time
+start_1 = time.time()
 
 for i in range(img_num):
 
@@ -149,6 +172,9 @@ for i in range(img_num):
     img_list.append(tmp_img)
     
     path = get_path(tmp_img)
+
+    print(img_path)
+    print(get_robust(tmp_img, path, threshold))
 
     update_coverage(path)
 
@@ -175,42 +201,45 @@ for i in range(img_num):
         loss_2 = K.mean(model.layers[8].output[..., label_top5[-2]])
         loss_3 = K.mean(model.layers[8].output[..., label_top5[-3]])
         loss_4 = K.mean(model.layers[8].output[..., label_top5[-4]])
-        loss_5 = K.mean(model.layers[8].output[..., label_top5[-5]])
-        
-        layer_output = (predict_weight * (loss_2 + loss_3 + loss_4 + loss_5) - loss_1)
 
-        loss_neuron = path_selection(model,get_path(gen_img), feature, gen_img)
+        #尽量使得模型的预测结果出错
+        layer_output = (predict_weight * (loss_2 + loss_3 +loss_4 ) - loss_1)
 
-        layer_output += 2 * K.sum(loss_neuron)
+        #选定一条未被选中过的路径，并将其与原路径中有差异的神经元节点提取出来
+        c_path = get_path(gen_img)
+        loss_neuron = path_selection(model, path=c_path, feature=feature, flag= get_path_value(gen_img, c_path))
+
+        #将上述两个目标合并
+        layer_output -= 0.5 * K.sum(loss_neuron)
 
         final_loss = K.mean(layer_output)
-    
+
         grads = K.gradients(final_loss, model.input)[0]
 
         grads_m = (K.sqrt(K.mean(K.square(grads))) + 1e-5)
 
         grads = grads / grads_m
 
-        grads_tensor_list = [loss_1, loss_2, loss_3, loss_4, loss_5]
+        grads_tensor_list = [loss_1, loss_2, loss_3]
         grads_tensor_list.extend(loss_neuron)
         grads_tensor_list.append(grads)
 
+        #得到最后的目标函数
         iterate = K.function([model.input], grads_tensor_list)
 
+        #对于每个样本最多进行5次扰动
         for iter in range(5):
-
+            #获得针对特定样本的具体扰动，得到混淆样本
             loss_neuron_list = iterate([gen_img])
 
             perturb = loss_neuron_list[-1]*learning_step
 
             gen_img += perturb
-
+            
             previous_coverage = path_covered(total_path)
 
             pred1 = model.predict(gen_img)
             label1 = np.argmax(pred1[0])
-
-            update_coverage(get_path(gen_img))
 
             current_coverage = path_covered(total_path)
 
@@ -220,13 +249,17 @@ for i in range(img_num):
 
             orig_L2_norm = np.linalg.norm(orig_img)
 
+            #计算l2范数，得到扰动程度
             perturb_adversial = L2_norm/orig_L2_norm
+            
+            # #扰动程度小的话且与原样本路径不同，则加入样本集中继续扰动
+            # if perturb_adversial <0.1 and label1==orig_label:
+            #     img_list.append(gen_img)
 
-            if current_coverage - previous_coverage > 0.01 / (i + 1) and perturb_adversial <0.1:
-
-                img_list.append(gen_img)
-
-            if label1!=orig_label:
+            #将模型识别错误的样本加入对抗样本集中
+            if label1!=orig_label and perturb_adversial<0.4:
+                #更新方法此时已覆盖的路径
+                update_coverage(get_path(gen_img))
 
                 total_norm += L2_norm
 
@@ -236,11 +269,26 @@ for i in range(img_num):
 
                 gen_img_deprecessed = deprocess_image(gen_img_tmp)
 
-                save_img = save_dir + img_name + '_'+ str(label1)+ '_' + str(perturb_adversial) + '.png'
+                save_img = save_dir + img_name.split('_')[0]+ '_'+ str(orig_label) + '_'+ str(label1)+ '_' + str(perturb_adversial) + '.png'
 
                 imsave(save_img, gen_img_deprecessed, cmap='gray')
 
                 adversial_num += 1
 
-print('covered neurons percentage:'+ str(path_covered(total_path)[2]))
+    print('covered percentage %.3f'
+        % path_covered(total_path)[2])
+    ratio.append(path_covered(total_path)[2])
+
+end_1 = time.time()
+print('耗时：'+str(end_1-start_1))
+import matplotlib.pyplot as plt
+
+
+x = [ i for i in range(len(ratio)) ]
+
+plt.plot(x, ratio)
+plt.show()
+
+print('average_norm = ' + str(total_norm / adversial_num))
+print('adversial num = ' + str(adversial_num))
 print('average perb adversial = ' + str(total_perturb_adversial / adversial_num))
