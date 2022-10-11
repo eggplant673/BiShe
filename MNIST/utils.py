@@ -1,5 +1,7 @@
 from platform import node
+from sysconfig import get_path
 from keras.preprocessing import image
+import tensorflow as tf
 import numpy as np
 from keras import backend as K
 
@@ -18,13 +20,15 @@ def normalize(x):
     return x / (K.sqrt(K.mean(K.square(x))) + 1e-5)
 
 all_paths = []
-def init_coverage(path):
+path_to_pos = {}
+def init_coverage(path, pos_node):
     collect = []
     for node in path:
         collect.append(str(node))
     path = ','.join(collect)
     if path not in all_paths:
         all_paths.append(path)
+        path_to_pos[path] = pos_node
         return True
     return False 
 
@@ -59,6 +63,15 @@ def get_next_per(path):
     else:
         return all_paths[index-1]
 
+def get_next_paths(path):
+    index = all_paths.index(path)
+    if index+10<=len(all_paths) and index-10>=0:
+        return all_paths[index-1:index] + all_paths[index+1:index+2]
+    elif index-10<0:
+        return all_paths[index+1:index+2]
+    else:
+        return all_paths[index-1:index]
+
 def path_convert(path):
     collect = []
     for node in path:
@@ -66,38 +79,41 @@ def path_convert(path):
     path = ','.join(collect)
     return path
 
-def path_selection(model, path, feature, flag):
-    #目标路径选择，这里只是简单的选择最相邻的路径
-    next_path = get_next_per(path_convert(path))
-    node_index1 = path
-    node_index2 = [ int(x) for x in next_path.split(",")]
-    # pos = set(node_index2) - set(node_index1)
-    neg = set(node_index1) - set(node_index2)
-    # neurous_pos = [ feature[node] for node in pos]
-    neurous_neg = [ feature[node] for node in neg]
-    total_loss = []
-    # for index in neurous_pos[0:6]:
-    #     total_loss.append(K.mean(model.layers[3].output[...,index]))
-    for index in neurous_neg[0:3]:
-        total_loss.append(-0.5*K.mean(model.layers[3].output[...,index]))
+def feature_selection(model, x, y, size, importance_map):
+    total = []
+    m = importance_map
 
-    for i in range(len(path)-1):
-        node = path[i]
-        next_node = path[i+1]
-        index = feature[next_node]
-        if node in path and node not in node_index2 and next_node not in node_index2:
-            if flag[i]<0:
-                total_loss.append(K.mean(model.layers[3].output[...,index]))
-            else:
-                total_loss.append(-0.6*K.mean(model.layers[3].output[...,index]))
-    # total_loss = []
-    # for index in path[:3]:
-    #     total_loss.append(K.mean(model.layers[3].output[...,feature[index]]))
-    # # for index in neurous_neg:
-    # #     grads = get_3rd_layer_output(img)
-    # #     grads = np.mean(grads,axis=(1, 2))
-    # #     grads = K.gradients(grads[0][index], model.input)[0]
-    # #     total_loss.append(-0.2*grads)
-    print(np.shape(total_loss))
+    m = np.mean(m,axis=(0,1))
+    for i in range(0,size):
+        total.append(m[i]*K.mean(model.layers[3].output[0][...,i]))
+
+    # for i in range(x):
+    #     for j in range(y):
+    #         for k in range(size):
+    #             total.append(m[i,j,k]*K.mean(model.layers[3].output[0][i,j,k]))
+    return total
+
+def path_selection(model, path, t_path, feature):
+    #目标路径选择，这里只是简单的选择最相邻的路径
+    node_index1 = [ int(x) for x in path.split(",")]
+    node_index2 = [ int(x) for x in t_path.split(",")]
+    path1_pos_node = path_to_pos[path]
+    path2_pos_node = path_to_pos[t_path]
+
+    pos = set(node_index2) - set(node_index1)
+    neg = set(node_index1) - set(node_index2)
+    total_loss = []
+  
+    for index in pos:
+        if index in path2_pos_node:
+            total_loss.append(K.mean(model.layers[3].output[...,feature[index]]))
+        else:
+            total_loss.append(-K.mean(model.layers[3].output[...,feature[index]]))
+    for index in neg:
+        if index in path1_pos_node:
+            total_loss.append(-K.mean(model.layers[3].output[...,feature[index]]))
+        else:
+            total_loss.append(K.mean(model.layers[3].output[...,feature[index]]))
     return total_loss
-    
+
+feature_to_importance = {}
